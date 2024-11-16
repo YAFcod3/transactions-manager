@@ -1,0 +1,62 @@
+version: '3.8'
+
+services:
+  transactions-manager-app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        ENV: ${ENV}
+    container_name: transactions-manager-app
+    ports:
+      - "${PORT}:${PORT}"
+    env_file:
+      - .env
+    networks:
+      - transactions-manager-network
+    restart: on-failure
+    depends_on:
+      - transactionsManagerDb
+      - redis
+
+  transactionsManagerDb:
+    container_name: transactionsManagerDb
+    image: mongo:7.0
+    ports:
+      - "${MONGO_PORT_EXTERNAL}:27017"
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: ${MONGO_USERNAME}
+      MONGO_INITDB_ROOT_PASSWORD: ${MONGO_PASSWORD}
+      MONGO_INITDB_DATABASE: ${MONGO_DB_NAME}
+    networks:
+      - transactions-manager-network
+    volumes:
+      - transactionsManagerDbData:/data/db
+    healthcheck:
+      test: ["CMD", "mongo", "--eval", "db.runCommand({ ping: 1 })"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  redis:
+    container_name: redis
+    image: redis:7.4.0
+    ports:
+      - "${REDIS_PORT_EXTERNAL}:6379"
+    environment:
+      REDIS_PASSWORD: ${REDIS_PASSWORD}
+    command: ["redis-server", "--save", "60", "1", "--save", "300", "10", "--appendonly", "no", "--requirepass", "${REDIS_PASSWORD}"]
+    networks:
+      - transactions-manager-network
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  transactionsManagerDbData:
+
+networks:
+  transactions-manager-network:
+    driver: bridge
