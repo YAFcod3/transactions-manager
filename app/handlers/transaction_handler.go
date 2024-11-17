@@ -12,9 +12,9 @@ type TransactionHandler struct {
 	Service *services.ConversionService
 }
 
-func NewTransactionHandler(codeGen *generate_transaction_code.CodeGenerator) *TransactionHandler {
+func NewTransactionHandler(codeGen *generate_transaction_code.CodeGenerator, supportedCurrenciesService *services.SupportedCurrenciesService) *TransactionHandler {
 	return &TransactionHandler{
-		Service: services.NewConversionService(codeGen),
+		Service: services.NewConversionService(codeGen, supportedCurrenciesService),
 		// Service: services.NewConversionService(mongoClient, redisClient, codeGen),
 
 	}

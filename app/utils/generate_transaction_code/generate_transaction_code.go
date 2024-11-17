@@ -12,10 +12,10 @@ import (
 )
 
 type CodeGenerator struct {
-	counter  int           // Contador en memoria
-	Client   *redis.Client // Cliente de Redis
-	mu       sync.Mutex    // Mutex para controlar el acceso concurrente
-	lastHour string        // Última hora almacenada
+	counter  int
+	Client   *redis.Client
+	mu       sync.Mutex // Mutex para controlar el acceso concurrente
+	lastHour string
 }
 
 // Cargar el contador y la última hora desde Redis
@@ -28,22 +28,27 @@ func (cg *CodeGenerator) LoadLastCounter() {
 	}
 }
 
-// Generar el código
 func (cg *CodeGenerator) GenerateCode() (string, error) {
 	cg.mu.Lock()
 	defer cg.mu.Unlock()
 
-	now := time.Now()
+	// Cargar la zona horaria local
+	location, err := time.LoadLocation("America/Havana")
+	if err != nil {
+		log.Fatalf("Failed to load location: %v", err)
+	}
+
+	now := time.Now().In(location)
 	currentHour := now.Format("06010215") // Formato YYMMDDHH
 
 	// Si la hora cambió, reiniciar el contador
+	ctx := context.Background()
 	if currentHour != cg.lastHour {
 		cg.counter = 0            // Reiniciar el contador
 		cg.lastHour = currentHour // Actualizar la última hora
 
 		// Guardar el contador y la última hora en Redis
-		ctx := context.Background()
-		err := cg.Client.HSet(ctx, "transaction_data", "counter", cg.counter, "last_hour", cg.lastHour).Err()
+		err = cg.Client.HSet(ctx, "transaction_data", "counter", cg.counter, "last_hour", cg.lastHour).Err() // Cambio aquí
 		if err != nil {
 			log.Println("Error al actualizar datos en Redis:", err)
 		}
@@ -56,9 +61,8 @@ func (cg *CodeGenerator) GenerateCode() (string, error) {
 	code := fmt.Sprintf("T%s%08d", currentHour, cg.counter)
 	cg.counter++ // Incrementar el contador en memoria para la próxima llamada
 
-	// Guardar el nuevo valor del contador en Redis  // ! ver si mejorar
-	ctx := context.Background()
-	err := cg.Client.HSet(ctx, "transaction_data", "counter", cg.counter).Err()
+	// Guardar el nuevo valor del contador en Redis
+	err = cg.Client.HSet(ctx, "transaction_data", "counter", cg.counter).Err() // Cambio aquí
 	if err != nil {
 		log.Println("Error al actualizar counter:", err)
 	}

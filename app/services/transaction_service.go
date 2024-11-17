@@ -14,20 +14,38 @@ import (
 )
 
 type ConversionService struct {
-	CodeGen *generate_transaction_code.CodeGenerator
+	CodeGen                    *generate_transaction_code.CodeGenerator
+	SupportedCurrenciesService *SupportedCurrenciesService
 }
 
-func NewConversionService(codeGen *generate_transaction_code.CodeGenerator) *ConversionService {
+func NewConversionService(codeGen *generate_transaction_code.CodeGenerator, supportedCurrenciesService *SupportedCurrenciesService) *ConversionService {
 	return &ConversionService{
-		CodeGen: codeGen,
+		CodeGen:                    codeGen,
+		SupportedCurrenciesService: supportedCurrenciesService,
 	}
 }
 
 func (s *ConversionService) ProcessTransaction(req models.TransactionRequest, userID string) (map[string]interface{}, error) {
 	mongoDBName := os.Getenv("MONGO_DB_NAME")
 
-	if req.Amount <= 0 || req.FromCurrency == "" || req.ToCurrency == "" || req.TransactionType == "" {
-		return nil, errors.New("invalid input")
+	if req.Amount <= 0 {
+		return nil, errors.New("'amount' must be greater than zero")
+	}
+	if req.FromCurrency == "" {
+		return nil, errors.New("'fromCurrency' is required")
+	}
+	if req.ToCurrency == "" {
+		return nil, errors.New("'toCurrency' is required")
+	}
+	if req.TransactionType == "" {
+		return nil, errors.New("'transactionType' is required")
+	}
+
+	if err := s.SupportedCurrenciesService.IsCurrencySupported(req.FromCurrency); err != nil {
+		return nil, errors.New("the 'fromCurrency' is not supported")
+	}
+	if err := s.SupportedCurrenciesService.IsCurrencySupported(req.ToCurrency); err != nil {
+		return nil, errors.New("the 'toCurrency' is not supported")
 	}
 
 	// Validar el tipo de transacción en MongoDB
@@ -44,16 +62,27 @@ func (s *ConversionService) ProcessTransaction(req models.TransactionRequest, us
 	// 	return nil, errors.New("transaction type not found")
 	// }
 
-	// get rate from redis
 	fromRate, err := utils.GetExchangeRate(req.FromCurrency)
 	if err != nil {
-		return nil, errors.New("from currency not found")
+		if err.Error() == "redis: nil" {
+			return nil, errors.New("'fromCurrency' exchange rate not found in Redis")
+		}
+		return nil, errors.New("failed to fetch 'fromCurrency' exchange rate")
 	}
-	// toRate, err := s.getExchangeRate(req.ToCurrency)
+
 	toRate, err := utils.GetExchangeRate(req.ToCurrency)
 	if err != nil {
-		return nil, errors.New("to currency not found")
+		if err.Error() == "redis: nil" {
+			return nil, errors.New("'toCurrency' exchange rate not found in Redis")
+		}
+		return nil, errors.New("failed to fetch 'toCurrency' exchange rate")
 	}
+
+	// toRate, err := s.getExchangeRate(req.ToCurrency)
+	// toRate, err := utils.GetExchangeRate(req.ToCurrency)
+	// if err != nil {
+	// 	return nil, errors.New("to currency not found")
+	// }
 
 	transactionCode, err := s.CodeGen.GenerateCode()
 	if err != nil {

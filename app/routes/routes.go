@@ -9,7 +9,8 @@ import (
 
 func RegisterRoutes(app *fiber.App, codeGen *generate_transaction_code.CodeGenerator, services *services.AppServices) {
 	// SetupConversionRoutes(app, mongoClient, redisClient, codeGen)
-	SetupConversionRoutes(app, codeGen)
+	SetupConversionRoutes(app, codeGen, services.SupportedCurrenciesService)
+	SetupSupportedCurrencyRoutes(app, services.SupportedCurrenciesService)
 	// SetupTransactionTypeRoutes(app)
 	SetupTransactionTypeRoutes(app, services.TransactionTypeService)
 
