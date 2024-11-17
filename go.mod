@@ -6,6 +6,7 @@ require (
 	github.com/go-redis/redis/v8 v8.11.5
 	github.com/gofiber/fiber/v2 v2.52.5
 	go.mongodb.org/mongo-driver v1.17.1
+	golang.org/x/net v0.21.0
 )
 
 require (
