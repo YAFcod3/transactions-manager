@@ -1,11 +1,12 @@
 package middleware
 
 import (
+	"fmt"
 	"os"
 	"strings"
 
 	"github.com/gofiber/fiber/v2"
-	"github.com/golang-jwt/jwt"
+	"github.com/golang-jwt/jwt/v4"
 )
 
 func JWTMiddleware() fiber.Handler {
@@ -24,12 +25,20 @@ func JWTMiddleware() fiber.Handler {
 			return []byte(os.Getenv("APP_JWT_SECRET")), nil
 		})
 
-		if err != nil || !token.Valid {
+		if err != nil {
+			if ve, ok := err.(*jwt.ValidationError); ok {
+				if ve.Errors&jwt.ValidationErrorExpired != 0 {
+					return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{"error": "Token has expired"})
+				}
+			}
 			return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{"error": "Invalid or expired token"})
 		}
 
-		if claims, ok := token.Claims.(jwt.MapClaims); ok {
+		if claims, ok := token.Claims.(jwt.MapClaims); ok && token.Valid {
+			fmt.Println(claims)
 			c.Locals("userId", claims["id"])
+		} else {
+			return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{"error": "Invalid token claims"})
 		}
 
 		return c.Next()
