@@ -11,6 +11,6 @@ func SetupSupportedCurrencyRoutes(app *fiber.App, service *services.SupportedCur
 
 	handler := handlers.NewSupportedCurrenciesHandler(service)
 
-	group := app.Group("/api/currencies")
+	group := app.Group("/exchange/api/currencies")
 	group.Get("/", handler.GetSupportedCurrencies)
 }

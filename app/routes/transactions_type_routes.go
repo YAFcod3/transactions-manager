@@ -8,7 +8,7 @@ import (
 )
 
 func SetupTransactionTypeRoutes(app *fiber.App, transactionTypeService *services.TransactionTypeService) {
-	transactionTypeGroup := app.Group("/api/settings/transactions-types")
+	transactionTypeGroup := app.Group("/exchange/api/settings/transactions-types")
 	transactionTypeHandler := handlers.NewTransactionTypeHandler(transactionTypeService)
 
 	transactionTypeGroup.Get("/", transactionTypeHandler.GetTransactionTypes)

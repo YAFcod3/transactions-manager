@@ -10,5 +10,5 @@ import (
 
 func SetupConversionRoutes(app *fiber.App, codeGen *generate_transaction_code.CodeGenerator, supportedCurrenciesService *services.SupportedCurrenciesService) {
 	transactionHandler := handlers.NewTransactionHandler(codeGen, supportedCurrenciesService)
-	app.Post("/api/conversion", transactionHandler.HandleTransaction)
+	app.Post("/exchange/api/conversion", transactionHandler.HandleTransaction)
 }

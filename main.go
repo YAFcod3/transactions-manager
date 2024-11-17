@@ -8,6 +8,7 @@ import (
 	"time"
 	"transactions-manager/app/config"
 	"transactions-manager/app/database"
+	"transactions-manager/app/middleware"
 	"transactions-manager/app/routes"
 	"transactions-manager/app/services"
 	"transactions-manager/app/utils"
@@ -27,7 +28,7 @@ func main() {
 	appServices := services.InitServices(database.MongoClient.Database(os.Getenv("MONGO_DB_NAME")), database.RedisClient, codeGen)
 
 	app := fiber.New()
-
+	app.Use("/", middleware.JWTMiddleware())
 	routes.RegisterRoutes(app, codeGen, appServices)
 
 	log.Printf("Starting server on port %s", cfg.Port)
