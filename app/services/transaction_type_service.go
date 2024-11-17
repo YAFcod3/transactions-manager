@@ -101,3 +101,12 @@ func (s *TransactionTypeService) DeleteTransactionType(id string) error {
 	_, err = s.DB.DeleteOne(context.Background(), bson.M{"_id": objectID})
 	return err
 }
+
+func (s *TransactionTypeService) GetTransactionTypeNameByID(id primitive.ObjectID) (string, error) {
+	var transactionType models.TransactionType
+	err := s.DB.FindOne(context.Background(), bson.M{"_id": id}).Decode(&transactionType)
+	if err == mongo.ErrNoDocuments {
+		return "", errors.New("transaction type not found")
+	}
+	return transactionType.Name, err
+}

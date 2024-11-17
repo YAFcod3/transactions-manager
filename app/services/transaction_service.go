@@ -16,30 +16,19 @@ import (
 type ConversionService struct {
 	CodeGen                    *generate_transaction_code.CodeGenerator
 	SupportedCurrenciesService *SupportedCurrenciesService
+	TransactionTypeService     *TransactionTypeService
 }
 
-func NewConversionService(codeGen *generate_transaction_code.CodeGenerator, supportedCurrenciesService *SupportedCurrenciesService) *ConversionService {
+func NewConversionService(codeGen *generate_transaction_code.CodeGenerator, supportedCurrenciesService *SupportedCurrenciesService, transactionTypeService *TransactionTypeService) *ConversionService {
 	return &ConversionService{
 		CodeGen:                    codeGen,
 		SupportedCurrenciesService: supportedCurrenciesService,
+		TransactionTypeService:     transactionTypeService,
 	}
 }
 
 func (s *ConversionService) ProcessTransaction(req models.TransactionRequest, userID string) (map[string]interface{}, error) {
 	mongoDBName := os.Getenv("MONGO_DB_NAME")
-
-	if req.Amount <= 0 {
-		return nil, errors.New("'amount' must be greater than zero")
-	}
-	if req.FromCurrency == "" {
-		return nil, errors.New("'fromCurrency' is required")
-	}
-	if req.ToCurrency == "" {
-		return nil, errors.New("'toCurrency' is required")
-	}
-	if req.TransactionType == "" {
-		return nil, errors.New("'transactionType' is required")
-	}
 
 	if err := s.SupportedCurrenciesService.IsCurrencySupported(req.FromCurrency); err != nil {
 		return nil, errors.New("the 'fromCurrency' is not supported")
@@ -48,19 +37,15 @@ func (s *ConversionService) ProcessTransaction(req models.TransactionRequest, us
 		return nil, errors.New("the 'toCurrency' is not supported")
 	}
 
-	// Validar el tipo de transacción en MongoDB
-	// transactionTypeID, err := primitive.ObjectIDFromHex(req.TransactionType)
-	// if err != nil {
-	// 	return nil, errors.New("invalid transaction type")
-	// }
-	// collection :=  database.MongoClient.Database(mongoDBName).Collection("transaction_types")
-	// var transactionType struct {
-	// 	Name string `bson:"name"`
-	// }
-	// err = collection.FindOne(context.Background(), bson.M{"_id": transactionTypeID}).Decode(&transactionType)
-	// if err != nil {
-	// 	return nil, errors.New("transaction type not found")
-	// }
+	transactionTypeID, err := primitive.ObjectIDFromHex(req.TransactionType)
+	if err != nil {
+		return nil, errors.New("invalid transaction type")
+	}
+
+	transactionTypeName, err := s.TransactionTypeService.GetTransactionTypeNameByID(transactionTypeID)
+	if err != nil {
+		return nil, err
+	}
 
 	fromRate, err := utils.GetExchangeRate(req.FromCurrency)
 	if err != nil {
@@ -78,12 +63,6 @@ func (s *ConversionService) ProcessTransaction(req models.TransactionRequest, us
 		return nil, errors.New("failed to fetch 'toCurrency' exchange rate")
 	}
 
-	// toRate, err := s.getExchangeRate(req.ToCurrency)
-	// toRate, err := utils.GetExchangeRate(req.ToCurrency)
-	// if err != nil {
-	// 	return nil, errors.New("to currency not found")
-	// }
-
 	transactionCode, err := s.CodeGen.GenerateCode()
 	if err != nil {
 		return nil, errors.New("failed to generate transaction code")
@@ -92,20 +71,18 @@ func (s *ConversionService) ProcessTransaction(req models.TransactionRequest, us
 	convertedAmount := (req.Amount / fromRate) * toRate
 
 	transaction := models.Transaction{
-		TransactionCode: transactionCode,
-		FromCurrency:    req.FromCurrency,
-		ToCurrency:      req.ToCurrency,
-		Amount:          req.Amount,
-		AmountConverted: convertedAmount,
-		ExchangeRate:    toRate / fromRate,
-		// TransactionTypeID: transactionTypeID,
-		CreatedAt: time.Now(),
-		UserID:    userID,
+		TransactionCode:   transactionCode,
+		FromCurrency:      req.FromCurrency,
+		ToCurrency:        req.ToCurrency,
+		Amount:            req.Amount,
+		AmountConverted:   convertedAmount,
+		ExchangeRate:      toRate / fromRate,
+		TransactionTypeID: transactionTypeID,
+		CreatedAt:         time.Now(),
+		UserID:            userID,
 	}
 
-	// transactionsColl := s.MongoClient.Database("currencyMongoDb").Collection("transactions")
 	transactionsColl := database.MongoClient.Database(mongoDBName).Collection("transactions")
-
 	result, err := transactionsColl.InsertOne(context.Background(), transaction)
 	if err != nil {
 		return nil, errors.New("failed to save transaction")
@@ -119,8 +96,8 @@ func (s *ConversionService) ProcessTransaction(req models.TransactionRequest, us
 		"amount":          transaction.Amount,
 		"amountConverted": transaction.AmountConverted,
 		"exchangeRate":    transaction.ExchangeRate,
-		// "transactionType": transactionType.Name,
-		"createdAt": transaction.CreatedAt.Format(time.RFC3339),
-		"userId":    transaction.UserID,
+		"transactionType": transactionTypeName,
+		"createdAt":       transaction.CreatedAt.Format(time.RFC3339),
+		"userId":          transaction.UserID,
 	}, nil
 }

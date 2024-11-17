@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"errors"
 	"transactions-manager/app/models"
 	"transactions-manager/app/services"
 	"transactions-manager/app/utils/generate_transaction_code"
@@ -12,11 +13,9 @@ type TransactionHandler struct {
 	Service *services.ConversionService
 }
 
-func NewTransactionHandler(codeGen *generate_transaction_code.CodeGenerator, supportedCurrenciesService *services.SupportedCurrenciesService) *TransactionHandler {
+func NewTransactionHandler(codeGen *generate_transaction_code.CodeGenerator, supportedCurrenciesService *services.SupportedCurrenciesService, transactionTypeService *services.TransactionTypeService) *TransactionHandler {
 	return &TransactionHandler{
-		Service: services.NewConversionService(codeGen, supportedCurrenciesService),
-		// Service: services.NewConversionService(mongoClient, redisClient, codeGen),
-
+		Service: services.NewConversionService(codeGen, supportedCurrenciesService, transactionTypeService),
 	}
 }
 
@@ -26,10 +25,24 @@ func (h *TransactionHandler) HandleTransaction(c *fiber.Ctx) error {
 		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": "Invalid request"})
 	}
 
-	// userID := c.Locals("userId").(string)
-	userID := "1234"
+	if req.Amount <= 0 {
+		return errors.New("'amount' must be greater than zero")
+	}
+	if req.FromCurrency == "" {
+		return errors.New("'fromCurrency' is required")
+	}
+	if req.ToCurrency == "" {
+		return errors.New("'toCurrency' is required")
+	}
+	if req.TransactionType == "" {
+		return errors.New("'transactionType' is required")
+	}
 
-	// Llama al servicio para procesar la transacción
+	userID := c.Locals("userId").(string)
+	if userID == "" {
+		return errors.New("userID is required")
+	}
+
 	response, err := h.Service.ProcessTransaction(req, userID)
 	if err != nil {
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": err.Error()})

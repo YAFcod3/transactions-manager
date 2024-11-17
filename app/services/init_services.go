@@ -10,13 +10,14 @@ import (
 type AppServices struct {
 	TransactionService         *ConversionService
 	TransactionTypeService     *TransactionTypeService
+	GetStatisticsService       *StatisticsService
 	SupportedCurrenciesService *SupportedCurrenciesService
 }
 
-// Initialize all services and return a centralized struct
 func InitServices(db *mongo.Database, redisClient *redis.Client, codeGen *generate_transaction_code.CodeGenerator) *AppServices {
 	return &AppServices{
 		SupportedCurrenciesService: NewSupportedCurrenciesService(),
 		TransactionTypeService:     NewTransactionTypeService(db),
+		GetStatisticsService:       NewStatisticsService(db),
 	}
 }

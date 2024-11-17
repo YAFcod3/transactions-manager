@@ -8,7 +8,7 @@ import (
 	"github.com/gofiber/fiber/v2"
 )
 
-func SetupConversionRoutes(app *fiber.App, codeGen *generate_transaction_code.CodeGenerator, supportedCurrenciesService *services.SupportedCurrenciesService) {
-	transactionHandler := handlers.NewTransactionHandler(codeGen, supportedCurrenciesService)
+func SetupConversionRoutes(app *fiber.App, codeGen *generate_transaction_code.CodeGenerator, supportedCurrenciesService *services.SupportedCurrenciesService, transactionTypeService *services.TransactionTypeService) {
+	transactionHandler := handlers.NewTransactionHandler(codeGen, supportedCurrenciesService, transactionTypeService)
 	app.Post("/exchange/api/conversion", transactionHandler.HandleTransaction)
 }

@@ -30,6 +30,7 @@ services:
       MONGO_INITDB_DATABASE: ${MONGO_DB_NAME}
     networks:
       - transactions-manager-network
+    # command: ["mongod", "--bind_ip_all", "--auth=false"]
     volumes:
       - transactionsManagerDbData:/data/db
     healthcheck:
