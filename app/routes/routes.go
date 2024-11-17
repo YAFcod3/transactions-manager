@@ -12,5 +12,6 @@ func RegisterRoutes(app *fiber.App, codeGen *generate_transaction_code.CodeGener
 	SetupSupportedCurrencyRoutes(app, services.SupportedCurrenciesService)
 	SetupTransactionTypeRoutes(app, services.TransactionTypeService)
 	SetupStatisticsRoutes(app, services.GetStatisticsService)
+	SetupTransactionsHistoryRoutes(app, services.TransactionsHistoryService)
 
 }

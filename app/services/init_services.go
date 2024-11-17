@@ -12,6 +12,7 @@ type AppServices struct {
 	TransactionTypeService     *TransactionTypeService
 	GetStatisticsService       *StatisticsService
 	SupportedCurrenciesService *SupportedCurrenciesService
+	TransactionsHistoryService *TransactionsHistoryService
 }
 
 func InitServices(db *mongo.Database, redisClient *redis.Client, codeGen *generate_transaction_code.CodeGenerator) *AppServices {
@@ -19,5 +20,6 @@ func InitServices(db *mongo.Database, redisClient *redis.Client, codeGen *genera
 		SupportedCurrenciesService: NewSupportedCurrenciesService(),
 		TransactionTypeService:     NewTransactionTypeService(db),
 		GetStatisticsService:       NewStatisticsService(db),
+		TransactionsHistoryService: NewTransactionsHistoryService(db),
 	}
 }
