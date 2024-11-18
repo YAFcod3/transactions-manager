@@ -5,7 +5,10 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"log"
 	"net/http"
+	"net/url"
+	"os"
 	"time"
 
 	"github.com/go-redis/redis/v8"
@@ -25,8 +28,24 @@ func StartExchangeRateUpdater(client *redis.Client, interval time.Duration) {
 		Timeout: 30 * time.Second,
 	}
 
+	var baseURL = os.Getenv("URL_API_EXTERNAL_GET_RATE")
+	if baseURL == "" {
+		log.Fatal("Base URL not set. Please set the URL_API_EXTERNAL_GET_RATE environment variable.")
+		return
+	}
+
 	fetchExchangeRates := func() {
-		resp, err := httpClient.Get("https://concurso.dofleini.com/exchange-rate/api/latest?base=USD")
+		u, err := url.Parse(baseURL)
+		if err != nil {
+			fmt.Println("Invalid base URL:", err)
+			return
+		}
+		u.Path = "/exchange-rate/api/latest"
+		query := u.Query()
+		query.Set("base", "USD")
+		u.RawQuery = query.Encode()
+
+		resp, err := httpClient.Get(u.String())
 		if err != nil {
 			fmt.Println("Error fetching exchange rates:", err)
 			return
@@ -55,16 +74,13 @@ func StartExchangeRateUpdater(client *redis.Client, interval time.Duration) {
 		key := "exchange_rates"
 		pipe := client.TxPipeline()
 
-		// Store exchange rates in Redis
 		for currency, rate := range exchangeRate.Rates {
 			pipe.HSet(ctx, key, currency, rate)
 		}
 
-		// Store base and timestamp
 		pipe.HSet(ctx, key, "base", exchangeRate.Base)
 		pipe.HSet(ctx, key, "timestamp", exchangeRate.Timestamp)
 
-		// Execute pipeline
 		_, err = pipe.Exec(ctx)
 		if err != nil {
 			fmt.Println("Error storing exchange rates in Redis:", err)
@@ -73,14 +89,11 @@ func StartExchangeRateUpdater(client *redis.Client, interval time.Duration) {
 
 		fmt.Println("Exchange rates updated successfully!")
 	}
-
-	// Perform initial update
+	// first fetch exchange rates
 	fetchExchangeRates()
 
-	// Start periodic updates
 	ticker := time.NewTicker(interval)
 	defer ticker.Stop()
-
 	go func() {
 		for {
 			select {

@@ -1,7 +1,6 @@
 package main
 
 import (
-	"fmt"
 	"log"
 	"os"
 	"os/signal"
@@ -34,8 +33,6 @@ func main() {
 	if allowOrigins == "" {
 		allowOrigins = "*"
 	}
-
-	fmt.Println(allowOrigins)
 	app.Use(cors.New(cors.Config{
 		AllowOrigins:     allowOrigins,
 		AllowCredentials: false,
