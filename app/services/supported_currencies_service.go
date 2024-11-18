@@ -1,20 +1,28 @@
 package services
 
-import "errors"
+import (
+	"errors"
+	"os"
+	"strings"
+)
 
 type SupportedCurrenciesService struct {
 	supportedCurrencies map[string]bool
 }
 
 func NewSupportedCurrenciesService() *SupportedCurrenciesService {
+	currencies := os.Getenv("SUPPORTED_CURRENCIES")
+	if currencies == "" {
+		currencies = "USD,EUR,GBP,JPY,CAD,AUD"
+	}
+
+	supportedCurrencies := make(map[string]bool)
+	for _, currency := range strings.Split(currencies, ",") {
+		supportedCurrencies[strings.TrimSpace(currency)] = true
+	}
+
 	return &SupportedCurrenciesService{
-		supportedCurrencies: map[string]bool{
-			"USD": true,
-			"EUR": true,
-			"GBP": true,
-			"JPY": true,
-			"CAD": true,
-		},
+		supportedCurrencies: supportedCurrencies,
 	}
 }
 

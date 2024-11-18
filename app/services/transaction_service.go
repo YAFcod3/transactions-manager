@@ -2,8 +2,9 @@ package services
 
 import (
 	"context"
-	"errors"
+	"fmt"
 	"os"
+	"strings"
 	"time"
 	"transactions-manager/app/database"
 	"transactions-manager/app/models"
@@ -17,75 +18,79 @@ type ConversionService struct {
 	CodeGen                    *generate_transaction_code.CodeGenerator
 	SupportedCurrenciesService *SupportedCurrenciesService
 	TransactionTypeService     *TransactionTypeService
+	SupportedCurrencies        []string
 }
 
-func NewConversionService(codeGen *generate_transaction_code.CodeGenerator, supportedCurrenciesService *SupportedCurrenciesService, transactionTypeService *TransactionTypeService) *ConversionService {
+func NewConversionService(codeGen *generate_transaction_code.CodeGenerator, transactionTypeService *TransactionTypeService) *ConversionService {
+	currencies := os.Getenv("SUPPORTED_CURRENCIES")
+	if currencies == "" {
+		currencies = "USD,EUR,GBP,JPY,CAD,AUD"
+	}
+
+	supportedCurrencies := []string{}
+	for _, currency := range strings.Split(currencies, ",") {
+		supportedCurrencies = append(supportedCurrencies, strings.TrimSpace(currency))
+	}
+
 	return &ConversionService{
-		CodeGen:                    codeGen,
-		SupportedCurrenciesService: supportedCurrenciesService,
-		TransactionTypeService:     transactionTypeService,
+		CodeGen:                codeGen,
+		TransactionTypeService: transactionTypeService,
+		SupportedCurrencies:    supportedCurrencies,
 	}
 }
 
 func (s *ConversionService) ProcessTransaction(req models.TransactionRequest, userID string) (map[string]interface{}, error) {
-	mongoDBName := os.Getenv("MONGO_DB_NAME")
-
-	if err := s.SupportedCurrenciesService.IsCurrencySupported(req.FromCurrency); err != nil {
-		return nil, errors.New("the 'fromCurrency' is not supported")
+	if !s.isCurrencySupported(req.FromCurrency) {
+		supportedCurrencies := strings.Join(s.SupportedCurrencies, ", ")
+		return nil, fmt.Errorf("INVALID_CURRENCY: The currency '%s' is not supported. Please use one of the supported currencies: %v", req.FromCurrency, supportedCurrencies)
 	}
-	if err := s.SupportedCurrenciesService.IsCurrencySupported(req.ToCurrency); err != nil {
-		return nil, errors.New("the 'toCurrency' is not supported")
+	if !s.isCurrencySupported(req.ToCurrency) {
+		supportedCurrencies := strings.Join(s.SupportedCurrencies, ", ")
+		return nil, fmt.Errorf("INVALID_CURRENCY: The currency '%s' is not supported. Please use one of the supported currencies: %v", req.ToCurrency, supportedCurrencies)
 	}
 
 	transactionTypeID, err := primitive.ObjectIDFromHex(req.TransactionType)
 	if err != nil {
-		return nil, errors.New("invalid transaction type")
+		return nil, fmt.Errorf("INVALID_TRANSACTION_TYPE: The transaction type ID '%s' is invalid. Please provide a valid transaction type", req.TransactionType)
 	}
-
 	transactionTypeName, err := s.TransactionTypeService.GetTransactionTypeNameByID(transactionTypeID)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("INVALID_TRANSACTION_TYPE: The transaction type does not exist")
 	}
 
 	fromRate, err := utils.GetExchangeRate(req.FromCurrency)
 	if err != nil {
-		if err.Error() == "redis: nil" {
-			return nil, errors.New("'fromCurrency' exchange rate not found in Redis")
-		}
-		return nil, errors.New("failed to fetch 'fromCurrency' exchange rate")
+		return nil, fmt.Errorf("EXCHANGE_RATE_ERROR: 'fromCurrency' exchange rate not found")
 	}
-
 	toRate, err := utils.GetExchangeRate(req.ToCurrency)
 	if err != nil {
-		if err.Error() == "redis: nil" {
-			return nil, errors.New("'toCurrency' exchange rate not found in Redis")
-		}
-		return nil, errors.New("failed to fetch 'toCurrency' exchange rate")
+		return nil, fmt.Errorf("EXCHANGE_RATE_ERROR: 'toCurrency' exchange rate not found")
 	}
 
 	transactionCode, err := s.CodeGen.GenerateCode()
 	if err != nil {
-		return nil, errors.New("failed to generate transaction code")
+		return nil, fmt.Errorf("TRANSACTION_CODE_ERROR: Failed to generate transaction code")
 	}
 
-	convertedAmount := (req.Amount / fromRate) * toRate
+	convertedAmount := (req.Amount / fromRate) * toRate // !
 
+	mongoDBName := os.Getenv("MONGO_DB_NAME")
+	transactionsColl := database.MongoClient.Database(mongoDBName).Collection("transactions")
 	transaction := models.Transaction{
 		TransactionCode:   transactionCode,
 		FromCurrency:      req.FromCurrency,
 		ToCurrency:        req.ToCurrency,
 		Amount:            req.Amount,
-		AmountConverted:   convertedAmount,
-		ExchangeRate:      toRate / fromRate,
+		AmountConverted:   utils.RoundOperations(convertedAmount),
+		ExchangeRate:      utils.RoundOperations(toRate / fromRate),
 		TransactionTypeID: transactionTypeID,
 		CreatedAt:         time.Now(),
 		UserID:            userID,
 	}
 
-	transactionsColl := database.MongoClient.Database(mongoDBName).Collection("transactions")
 	result, err := transactionsColl.InsertOne(context.Background(), transaction)
 	if err != nil {
-		return nil, errors.New("failed to save transaction")
+		return nil, fmt.Errorf("DATABASE_ERROR: Failed to save transaction")
 	}
 
 	return map[string]interface{}{
@@ -94,10 +99,19 @@ func (s *ConversionService) ProcessTransaction(req models.TransactionRequest, us
 		"fromCurrency":    transaction.FromCurrency,
 		"toCurrency":      transaction.ToCurrency,
 		"amount":          transaction.Amount,
-		"amountConverted": transaction.AmountConverted,
-		"exchangeRate":    transaction.ExchangeRate,
+		"amountConverted": utils.RoundOperations(transaction.AmountConverted),
+		"exchangeRate":    utils.RoundOperations(transaction.ExchangeRate),
 		"transactionType": transactionTypeName,
 		"createdAt":       transaction.CreatedAt.Format(time.RFC3339),
 		"userId":          transaction.UserID,
 	}, nil
+}
+
+func (s *ConversionService) isCurrencySupported(currency string) bool {
+	for _, c := range s.SupportedCurrencies {
+		if c == currency {
+			return true
+		}
+	}
+	return false
 }
