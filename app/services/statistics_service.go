@@ -2,6 +2,7 @@ package services
 
 import (
 	"context"
+	"errors"
 	"time"
 
 	"go.mongodb.org/mongo-driver/bson"
@@ -19,7 +20,6 @@ func NewStatisticsService(db *mongo.Database) *StatisticsService {
 }
 
 func (s *StatisticsService) GetStatisticsService(startDate, endDate time.Time) (map[string]interface{}, error) {
-
 	pipeline := mongo.Pipeline{
 		{{
 			"$match", bson.M{
@@ -55,7 +55,7 @@ func (s *StatisticsService) GetStatisticsService(startDate, endDate time.Time) (
 
 	cursor, err := s.DB.Aggregate(context.Background(), pipeline)
 	if err != nil {
-		return nil, err
+		return nil, errors.New("failed to execute aggregation pipeline")
 	}
 	defer cursor.Close(context.Background())
 
@@ -83,7 +83,7 @@ func (s *StatisticsService) GetStatisticsService(startDate, endDate time.Time) (
 		}
 
 		if err := cursor.Decode(&result); err != nil {
-			return nil, err
+			return nil, errors.New("failed to decode aggregation result")
 		}
 
 		// Update response
@@ -92,7 +92,7 @@ func (s *StatisticsService) GetStatisticsService(startDate, endDate time.Time) (
 		response["totalAmountConvertedByCurrency"].(map[string]float64)[result.ID.Currency] += result.TotalConverted
 		response["totalAmountByTransactionType"].(map[string]float64)[result.ID.TypeName] += result.TotalAmount
 
-		// save for average calculation
+		// Save for average calculation
 		countByType[result.ID.TypeName] += result.Count
 		totalAmountByType[result.ID.TypeName] += result.TotalAmount
 	}

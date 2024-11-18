@@ -28,7 +28,7 @@ func (h *StatisticsHandler) GetStatisticsHandler(c *fiber.Ctx) error {
 		if err != nil {
 			return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
 				"code":    "INVALID_DATE_FORMAT",
-				"message": "Start date is invalid. Use RFC3339 format.",
+				"message": "The start date is invalid. Please use the RFC3339 format.",
 			})
 		}
 	} else {
@@ -40,18 +40,22 @@ func (h *StatisticsHandler) GetStatisticsHandler(c *fiber.Ctx) error {
 		if err != nil {
 			return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
 				"code":    "INVALID_DATE_FORMAT",
-				"message": "End date is invalid. Use RFC3339 format.",
+				"message": "The end date is invalid. Please use the RFC3339 format.",
 			})
 		}
 	} else {
 		end = time.Now()
 	}
+
 	stats, err := h.Service.GetStatisticsService(start, end)
 	if err != nil {
 		return c.Status(http.StatusInternalServerError).JSON(fiber.Map{
-			"error": "Failed to retrieve statistics",
+			"code":    "STATISTICS_ERROR",
+			"message": "Failed to retrieve statistics.",
 		})
 	}
 
-	return c.JSON(stats)
+	return c.JSON(fiber.Map{
+		"data": stats,
+	})
 }
