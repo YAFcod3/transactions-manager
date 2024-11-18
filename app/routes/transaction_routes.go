@@ -2,6 +2,7 @@ package routes
 
 import (
 	"transactions-manager/app/handlers"
+	"transactions-manager/app/middleware"
 	"transactions-manager/app/services"
 	"transactions-manager/app/utils/generate_transaction_code"
 
@@ -10,5 +11,7 @@ import (
 
 func SetupConversionRoutes(app *fiber.App, codeGen *generate_transaction_code.CodeGenerator, transactionTypeService *services.TransactionTypeService) {
 	transactionHandler := handlers.NewTransactionHandler(codeGen, transactionTypeService)
-	app.Post("/exchange/api/conversion", transactionHandler.HandleTransaction)
+	duplicateMiddleware := middleware.VerifyTransactionDuplicated()
+
+	app.Post("/exchange/api/conversion", duplicateMiddleware, transactionHandler.HandleTransaction)
 }
