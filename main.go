@@ -6,7 +6,6 @@ import (
 	"os/signal"
 	"syscall"
 	"time"
-	"transactions-manager/app/config"
 	"transactions-manager/app/database"
 	"transactions-manager/app/middleware"
 	"transactions-manager/app/routes"
@@ -19,7 +18,6 @@ import (
 )
 
 func main() {
-	cfg := config.LoadConfig()
 	database.Init()
 	defer database.Close()
 
@@ -29,6 +27,10 @@ func main() {
 	appServices := services.InitServices(database.MongoClient.Database(os.Getenv("MONGO_DB_NAME")), database.RedisClient, codeGen)
 
 	app := fiber.New()
+	port := os.Getenv("PORT")
+	if port == "" {
+		port = "8000"
+	}
 	allowOrigins := os.Getenv("ALLOW_ORIGINS")
 	if allowOrigins == "" {
 		allowOrigins = "*"
@@ -44,14 +46,14 @@ func main() {
 	app.Use("/", middleware.JWTMiddleware())
 	routes.RegisterRoutes(app, codeGen, appServices)
 
-	log.Printf("Starting server on port %s", cfg.Port)
+	log.Printf("Starting server on port %s", port)
 
 	quit := make(chan os.Signal, 1)
 	signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM)
 
 	// Listen and server on port on the /  goroutine to prevent blocking the main goroutine
 	go func() {
-		if err := app.Listen(":" + cfg.Port); err != nil {
+		if err := app.Listen(":" + port); err != nil {
 			log.Fatalf("Failed to start server: %v", err)
 		}
 	}()
