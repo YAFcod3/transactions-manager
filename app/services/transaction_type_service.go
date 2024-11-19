@@ -21,8 +21,12 @@ func NewTransactionTypeService(db *mongo.Database) *TransactionTypeService {
 }
 
 func (s *TransactionTypeService) CreateTransactionType(transactionType models.TransactionType) error {
+	// count, err := s.DB.CountDocuments(context.Background(), bson.M{
+	// 	"name": bson.M{"$regex": transactionType.Name, "$options": "i"},
+	// })
 	count, err := s.DB.CountDocuments(context.Background(), bson.M{
-		"name": bson.M{"$regex": transactionType.Name, "$options": "i"},
+		"name":    bson.M{"$regex": transactionType.Name, "$options": "i"},
+		"deleted": false,
 	})
 	if err != nil {
 		return err
@@ -36,7 +40,8 @@ func (s *TransactionTypeService) CreateTransactionType(transactionType models.Tr
 }
 
 func (s *TransactionTypeService) GetTransactionTypes() ([]models.TransactionType, error) {
-	cursor, err := s.DB.Find(context.Background(), bson.M{})
+	// cursor, err := s.DB.Find(context.Background(), bson.M{})
+	cursor, err := s.DB.Find(context.Background(), bson.M{"deleted": bson.M{"$ne": true}})
 	if err != nil {
 		return nil, err
 	}
@@ -55,7 +60,8 @@ func (s *TransactionTypeService) GetTransactionTypeByID(id string) (models.Trans
 		return models.TransactionType{}, errors.New("invalid ID")
 	}
 	var transactionType models.TransactionType
-	err = s.DB.FindOne(context.Background(), bson.M{"_id": objectID}).Decode(&transactionType)
+	// err = s.DB.FindOne(context.Background(), bson.M{"_id": objectID}).Decode(&transactionType)
+	err = s.DB.FindOne(context.Background(), bson.M{"_id": objectID, "deleted": bson.M{"$ne": true}}).Decode(&transactionType)
 	if err == mongo.ErrNoDocuments {
 		return models.TransactionType{}, errors.New("transaction type not found")
 	}
@@ -98,8 +104,14 @@ func (s *TransactionTypeService) DeleteTransactionType(id string) error {
 	if err != nil {
 		return errors.New("invalid ID")
 	}
-	_, err = s.DB.DeleteOne(context.Background(), bson.M{"_id": objectID})
-	return err
+	// _, err = s.DB.DeleteOne(context.Background(), bson.M{"_id": objectID})
+	// return err
+	_, err = s.DB.UpdateOne(context.Background(), bson.M{"_id": objectID}, bson.M{"$set": bson.M{"deleted": true}})
+	if err != nil {
+		return errors.New("failed to mark transaction type as deleted")
+	}
+
+	return nil
 }
 
 func (s *TransactionTypeService) GetTransactionTypeNameByID(id primitive.ObjectID) (string, error) {
