@@ -8,8 +8,12 @@
 ### **Clonar el Repositorio**
 ```bash
 git clone https://github.com/YAFcod3/transactions-manager.git
+```
+
+```bash
 cd transactions-manager
 ```
+
 ### **Configurar Variables de Entorno**
 ```env
 PORT=
