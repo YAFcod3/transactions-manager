@@ -52,7 +52,7 @@ Utilizar los siguientes scripts para iniciar la aplicación con Docker Compose.
 
 ```
 
-o
+O bien, puede usar los comandos de Docker Compose directamente:
 
 ```bash
 docker-compose --env-file .env up --build -d   # up
@@ -60,7 +60,17 @@ docker-compose --env-file .env up --build -d   # up
 docker-compose down  # down
 
 ```
+
+### Sin decide iniciar el servidor fuera del contenedor
+
+ - Instalar Go en su sistema (https://go.dev/doc/install) version 1.23 o superior.
+ - Descargue dependencies con `go mod tidy` en la carpeta raíz del proyecto.
+ - Ejecute el servidor con `go run main.go` en la carpeta raíz del proyecto.
+
+
 #### Nota :  Es importante que se establezca la comunicación entre el servidor y la api externa de la tasa de cambio al iniciar la aplicación para que esta funcione correctamente.
+
+
 ---
 
 ## **Descripción del Proyecto**
