@@ -51,6 +51,16 @@ Utilizar los siguientes scripts para iniciar la aplicación con Docker Compose.
 ./compose.sh down
 
 ```
+
+o
+
+```bash
+docker-compose --env-file .env up --build -d   # up
+
+docker-compose down  # down
+
+```
+#### Nota :  Es importante que se establezca la comunicación entre el servidor y la api externa de la tasa de cambio al iniciar la aplicación para que esta funcione correctamente.
 ---
 
 ## **Descripción del Proyecto**
