@@ -1,0 +1,30 @@
+# global:
+#   scrape_interval: 15s
+#   evaluation_interval: 15s
+
+# scrape_configs:
+#   - job_name: 'transactions-manager-app'
+#     static_configs:
+#       - targets: ['my-app:8000']
+#     # - targets: ['host.docker.internal:8000']  # Usa el nombre del servicio definido en el compose
+#     metrics_path: '/metrics'      # La ruta donde expones las métricas
+
+#   - job_name: 'prometheus'
+#     static_configs:
+#       - targets: ['localhost:9090']
+#       # - targets: ['host.docker.internal:9090']
+
+
+global:
+  scrape_interval: 15s
+  evaluation_interval: 15s
+
+scrape_configs:
+  - job_name: 'transactions-manager-app'
+    static_configs:
+      - targets: ['transactions-manager-app:9000']
+    metrics_path: '/metrics'
+
+  - job_name: 'prometheus'
+    static_configs:
+      - targets: ['localhost:9090']

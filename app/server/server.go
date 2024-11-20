@@ -26,6 +26,7 @@ func CreateServer(appServices *services.AppServices, codeGen *generate_transacti
 		AllowMethods: "GET, POST, PUT,PATCH, DELETE, OPTIONS",
 		AllowHeaders: "Origin, Content-Type, Authorization, Accept",
 	}))
+	middleware.RegisterPrometheus(app)
 
 	app.Use("/", middleware.JWTMiddleware())
 	routes.RegisterRoutes(app, codeGen, appServices)
