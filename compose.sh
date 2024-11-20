@@ -11,12 +11,11 @@ NC='\033[0m'
 set -e
 
 function show_help {
-    echo -e "${YELLOW}Usage: $0 [up|down|clean]${NC}"
+    echo -e "${YELLOW}Usage: $0 [up|down]${NC}"
     echo
     echo "Options:"
     echo "  up      Build and start the environment"
     echo "  down    Stop and remove all containers"
-    echo "  clean   Remove unused Docker resources"
 }
 
 if ! command -v docker-compose &> /dev/null; then
@@ -41,10 +40,6 @@ case $1 in
     down)
         echo -e "${YELLOW}Stopping and removing all containers...${NC}"
         docker-compose down
-        ;;
-    clean)
-        echo -e "${YELLOW}Cleaning up unused Docker resources...${NC}"
-        docker system prune -f
         ;;
     *)
         echo -e "${RED}Invalid option: $1${NC}"

@@ -1,122 +1,96 @@
 
+# **Transactions App**
 
+<!-- ## **Levantar la Aplicación** -->
 
-# Transactions Manager App
+### **Requisitos Previos**
+- **Docker** y **Docker Compose** instalados.
 
-Este proyecto incluye un entorno Dockerizado para desarrollar y ejecutar la aplicación de gestión de transacciones. Se pueden utilizar scripts para simplificar la administración del entorno en sistemas Linux/MacOS (Bash) y Windows (PowerShell).
+### **Clonar el Repositorio**
+Clona el repositorio en tu máquina local:
+```bash
+git clone https://github.com/YAFcod3/transactions-manager.git
+cd transactions-manager
+```
+### **Configurar Variables de Entorno**
+```env
+PORT=9000
+URL_API_EXTERNAL_GET_RATE=https://concurso.dofleini.com/exchange-rate/api/
+SUPPORTED_CURRENCIES=USD,EUR,GBP,JPY,CAD,AUD
+MONGO_USERNAME=root
+MONGO_PASSWORD=
+MONGO_DB_NAME=
+MONGO_PORT_EXTERNAL=27017
+REDIS_PORT_EXTERNAL=6379
+REDIS_PASSWORD=
+ENV=development
+APP_JWT_SECRET=
+ALLOW_ORIGINS=   (opcional)
+```
+
+### **Levantar la Aplicación**
+Utilizar los siguientes scripts para iniciar la aplicación con Docker Compose.
+
+### **PowerShell (Windows)**
+```powershell
+# Iniciar
+.\compose.ps1 up
+
+# Detener y eliminar contenedores
+.\compose.ps1 down
+
+```
+
+### **Bash (Linux/MacOS)**
+```bash
+# Iniciar
+./compose.sh up
+
+# Detener y eliminar contenedores
+./compose.sh down
+
+```
+---
+
+## **Descripción del Proyecto**
+
+Esta aplicación es una solución backend diseñada para gestionar transacciones financieras de manera eficiente y segura. Sus funcionalidades incluyen:
+- Conversión de monedas con tasas de cambio actualizadas en tiempo real.
+- Generación de códigos únicos para cada transacción.
+- Gestión de tipos de transacciones con eliminación lógica (*soft delete*).
 
 ---
 
-## **Requisitos Previos**
+## **Características Principales**
 
-1. **Docker**:
-
-
-2. **docker-compose**
-
-3. **Scripts disponibles**:
-   - **compose.sh**: Para sistemas Linux/macOS.
-   - **compose.ps1**: Para sistemas Windows con PowerShell.
-
-4. **Archivo `.env`**:
-   - Configura el archivo `.env` en la raíz del proyecto con las siguientes variables:
-     ```plaintext
-     PORT=
-     MONGO_USERNAME=
-     MONGO_PASSWORD=
-     MONGO_DB_NAME=
-     REDIS_HOST=redis
-     REDIS_PORT=6379
-     REDIS_PASSWORD=
-     ENV=development
-     ```
+- **Conversión de monedas** con tasas actualizadas cada hora desde un proveedor externo.
+- **Generación de códigos únicos**, asegurando unicidad y consistencia incluso bajo alta concurrencia.
+- **Gestión de tipos de transacciones**, permitiendo creación, actualización y eliminación lógica.
 
 ---
 
-## **Uso del Script en Linux/macOS**
+## **Diseño Arquitectónico**
 
-### 1. **Configurar el archivo `compose.sh`**
-   Asegúrate de que el script tenga permisos de ejecución:
-   ```bash
-   chmod +x compose.sh
-   ```
+### **Arquitectura General**
+- **Patrón**: Modular con separación de responsabilidades.
+- **Componentes Clave**:
+  - **Presentación**: Manejo de rutas y middlewares usando Fiber.
+  - **Negocio**: Servicios para lógica y validaciones.
+  - **Persistencia**: Uso de MongoDB para datos permanentes y Redis para datos volátiles.
+  - **Infraestructura**: Contenedores Docker para despliegue eficiente.
 
-### 2. **Comandos disponibles**
+## **Seguridad**
 
-- **Levantar el entorno**:
-  ```bash
-  ./compose.sh up
-  ```
-  Esto construye y levanta todos los servicios definidos en `docker-compose.yml`.
+### **Autenticación**
+- Middleware basado en JWT para proteger rutas sensibles.
 
-- **Detener los contenedores**:
-  ```bash
-  ./compose.sh down
-  ```
+### **Validaciones**
+- Validaciones estrictas de entrada para evitar datos inconsistentes.
 
-- **Limpiar recursos de Docker**:
-  ```bash
-  ./compose.sh clean
-  ```
+### **Configuraciones Seguras**
+- Uso de variables de entorno para proteger datos sensibles como contraseñas y claves.
 
 ---
 
-## **Uso del Script en Windows**
-
-### 1. **Ejecutar el script `compose.ps1`**
-   Asegúrate de que tienes permisos para ejecutar scripts de PowerShell. Si no, habilítalos ejecutando este comando como administrador:
-   ```powershell
-   Set-ExecutionPolicy -Scope CurrentUser -ExecutionPolicy RemoteSigned
-   ```
-
-### 2. **Comandos disponibles**
-
-- **Levantar el entorno**:
-  ```powershell
-  .\compose.ps1 up
-  ```
-  Esto construye y levanta todos los servicios definidos en `docker-compose.yml`.
-
-- **Detener los contenedores**:
-  ```powershell
-  .\compose.ps1 down
-  ```
-
-- **Limpiar recursos de Docker**:
-  ```powershell
-  .\compose.ps1 clean
-  ```
-
----
-
-## **Flujo de Trabajo**
-
-1. Configura el archivo `.env` con las variables de entorno necesarias.
-2. Usa los scripts para manejar el entorno Dockerizado:
-   - Usa `up` para iniciar.
-   - Usa `down` para detener.
-   - Usa `clean` para limpiar recursos no utilizados.
-3. Verifica que la aplicación esté corriendo accediendo a [http://localhost:9000](http://localhost:9000) en tu navegador.
-
----
-
-## **Notas**
-
-- **Cambio de Entorno**:
-  - Cambia la variable `ENV` en el archivo `.env` para alternar entre desarrollo (`development`) y producción (`production`).
-
-- **Problemas comunes**:
-  - **Error: `.env` not found**:
-    - Asegúrate de que el archivo `.env` existe en la raíz del proyecto.
-  - **Permiso denegado al ejecutar scripts**:
-    - En Linux/macOS:
-      ```bash
-      chmod +x compose.sh
-      ```
-    - En Windows:
-      Habilita la ejecución de scripts con:
-      ```powershell
-      Set-ExecutionPolicy -Scope CurrentUser -ExecutionPolicy RemoteSigned
-      ```
 
 ---
