@@ -37,7 +37,7 @@ func VerifyTransactionDuplicated() fiber.Handler {
 		}
 
 		if exists > 0 {
-			return c.Status(http.StatusTooManyRequests).JSON(fiber.Map{
+			return c.Status(http.StatusBadRequest).JSON(fiber.Map{
 				"code":    "DUPLICATE_TRANSACTION",
 				"message": "A similar transaction was already processed within the last 20 seconds. Please try again later.",
 			})

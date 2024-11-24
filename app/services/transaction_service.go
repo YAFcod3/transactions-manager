@@ -72,7 +72,7 @@ func (s *ConversionService) ProcessTransaction(req models.TransactionRequest, us
 		return nil, fmt.Errorf("TRANSACTION_CODE_ERROR: Failed to generate transaction code")
 	}
 
-	convertedAmount := (req.Amount / fromRate) * toRate // !
+	convertedAmount := (req.Amount / fromRate) * toRate
 
 	mongoDBName := os.Getenv("MONGO_DB_NAME")
 	transactionsColl := database.MongoClient.Database(mongoDBName).Collection("transactions")
