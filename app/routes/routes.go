@@ -7,11 +7,11 @@ import (
 	"github.com/gofiber/fiber/v2"
 )
 
-func RegisterRoutes(app *fiber.App, codeGen *generate_transaction_code.CodeGenerator, services *services.AppServices) {
-	SetupConversionRoutes(app, codeGen, services.TransactionTypeService)
-	SetupSupportedCurrencyRoutes(app, services.SupportedCurrenciesService)
-	SetupTransactionTypeRoutes(app, services.TransactionTypeService)
-	SetupStatisticsRoutes(app, services.GetStatisticsService)
-	SetupTransactionsHistoryRoutes(app, services.TransactionsHistoryService)
+func RegisterRoutes(apiGroup fiber.Router, codeGen *generate_transaction_code.CodeGenerator, services *services.AppServices) {
+	SetupConversionRoutes(apiGroup, codeGen, services.TransactionTypeService)
+	SetupSupportedCurrencyRoutes(apiGroup, services.SupportedCurrenciesService)
+	SetupTransactionTypeRoutes(apiGroup, services.TransactionTypeService)
+	SetupStatisticsRoutes(apiGroup, services.GetStatisticsService)
+	SetupTransactionsHistoryRoutes(apiGroup, services.TransactionsHistoryService)
 
 }

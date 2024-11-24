@@ -7,10 +7,9 @@ import (
 	"github.com/gofiber/fiber/v2"
 )
 
-func SetupSupportedCurrencyRoutes(app *fiber.App, service *services.SupportedCurrenciesService) {
+func SetupSupportedCurrencyRoutes(apiGroup fiber.Router, service *services.SupportedCurrenciesService) {
 
 	handler := handlers.NewSupportedCurrenciesHandler(service)
 
-	group := app.Group("/exchange/api/currencies")
-	group.Get("/", handler.GetSupportedCurrencies)
+	apiGroup.Get("/currencies", handler.GetSupportedCurrencies)
 }

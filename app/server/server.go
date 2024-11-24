@@ -28,7 +28,8 @@ func CreateServer(appServices *services.AppServices, codeGen *generate_transacti
 	}))
 
 	app.Use("/", middleware.JWTMiddleware())
-	routes.RegisterRoutes(app, codeGen, appServices)
+	apiGroup := app.Group("/exchange/api")
+	routes.RegisterRoutes(apiGroup, codeGen, appServices)
 	log.Printf("Server configured and ready on port %s", port)
 	return app
 }

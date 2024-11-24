@@ -15,18 +15,18 @@ cd transactions-manager
 ```
 
 ### **Configurar Variables de Entorno**
-```env
-PORT=
+```bash
+PORT=     # puerto para el servidor
 URL_API_EXTERNAL_GET_RATE=https://concurso.dofleini.com/exchange-rate/api/
 SUPPORTED_CURRENCIES=USD,EUR,GBP,JPY,CAD,AUD
 MONGO_USERNAME=
 MONGO_PASSWORD=
 MONGO_DB_NAME=
-MONGO_PORT_EXTERNAL=27017
-REDIS_PORT_EXTERNAL=6379
+MONGO_PORT_EXTERNAL=27017  # puede ser diferente
+REDIS_PORT_EXTERNAL=6379   # puede ser diferente
 REDIS_PASSWORD=
 APP_JWT_SECRET=
-ALLOW_ORIGINS=   (opcional)
+ALLOW_ORIGINS=    # (opcional)  por defecto permite todos los orígenes
 ```
 
 ### **Levantar la Aplicación**
@@ -61,7 +61,7 @@ docker-compose down  # down
 
 ```
 
-### Sin decide iniciar el servidor fuera del contenedor
+### Si decide iniciar el servidor fuera del contenedor
 
  - Instalar Go en su sistema (https://go.dev/doc/install) version 1.23 o superior.
  - Descargue dependencies con `go mod tidy` en la carpeta raíz del proyecto.
@@ -80,6 +80,9 @@ Esta aplicación es una solución backend diseñada para gestionar transacciones
 - Generación de códigos únicos para cada transacción.
 - Gestión de tipos de transacciones
 - Estadísticas de transacciones.
+- Historial de transacciones.
+- Verificación de duplicados de transacciones.
+- Actualización de tasas de cambio.
 
 ### **Endpoints**
 
