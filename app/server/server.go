@@ -22,9 +22,8 @@ func CreateServer(appServices *services.AppServices, codeGen *generate_transacti
 	app.Use(cors.New(cors.Config{
 		AllowOrigins:     allowOrigins,
 		AllowCredentials: false,
-		// AllowCredentials: true,
-		AllowMethods: "GET, POST, PUT,PATCH, DELETE, OPTIONS",
-		AllowHeaders: "Origin, Content-Type, Authorization, Accept",
+		AllowMethods:     "GET, POST, PUT,PATCH, DELETE, OPTIONS",
+		AllowHeaders:     "Origin, Content-Type, Authorization, Accept",
 	}))
 
 	app.Use("/", middleware.JWTMiddleware())
