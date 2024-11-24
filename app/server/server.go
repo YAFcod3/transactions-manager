@@ -22,13 +22,13 @@ func CreateServer(appServices *services.AppServices, codeGen *generate_transacti
 	app.Use(cors.New(cors.Config{
 		AllowOrigins:     allowOrigins,
 		AllowCredentials: false,
-		// AllowCredentials: true,
-		AllowMethods: "GET, POST, PUT,PATCH, DELETE, OPTIONS",
-		AllowHeaders: "Origin, Content-Type, Authorization, Accept",
+		AllowMethods:     "GET, POST, PUT,PATCH, DELETE, OPTIONS",
+		AllowHeaders:     "Origin, Content-Type, Authorization, Accept",
 	}))
 
 	app.Use("/", middleware.JWTMiddleware())
-	routes.RegisterRoutes(app, codeGen, appServices)
+	apiGroup := app.Group("/exchange/api")
+	routes.RegisterRoutes(apiGroup, codeGen, appServices)
 	log.Printf("Server configured and ready on port %s", port)
 	return app
 }

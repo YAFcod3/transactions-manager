@@ -7,8 +7,8 @@ import (
 	"github.com/gofiber/fiber/v2"
 )
 
-func SetupTransactionTypeRoutes(app *fiber.App, transactionTypeService *services.TransactionTypeService) {
-	transactionTypeGroup := app.Group("/exchange/api/settings/transactions-types")
+func SetupTransactionTypeRoutes(apiGroup fiber.Router, transactionTypeService *services.TransactionTypeService) {
+	transactionTypeGroup := apiGroup.Group("/settings/transactions-types")
 	transactionTypeHandler := handlers.NewTransactionTypeHandler(transactionTypeService)
 
 	transactionTypeGroup.Get("/", transactionTypeHandler.GetTransactionTypes)

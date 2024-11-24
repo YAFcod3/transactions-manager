@@ -7,9 +7,8 @@ import (
 	"github.com/gofiber/fiber/v2"
 )
 
-func SetupTransactionsHistoryRoutes(app *fiber.App, transactionsHistoryService *services.TransactionsHistoryService) {
-	transactionsHistoryGroup := app.Group("/exchange/api/transactions")
+func SetupTransactionsHistoryRoutes(apiGroup fiber.Router, transactionsHistoryService *services.TransactionsHistoryService) {
 	transactionsHistoryHandler := handlers.NewTransactionsHistoryHandler(transactionsHistoryService)
-	transactionsHistoryGroup.Get("/", transactionsHistoryHandler.GetTransactionsHistory)
+	apiGroup.Get("/transactions", transactionsHistoryHandler.GetTransactionsHistory)
 
 }

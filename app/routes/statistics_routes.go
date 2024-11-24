@@ -7,9 +7,8 @@ import (
 	"github.com/gofiber/fiber/v2"
 )
 
-func SetupStatisticsRoutes(app *fiber.App, statisticsService *services.StatisticsService) {
-	statisticsGroup := app.Group("/exchange/api/statistics/")
+func SetupStatisticsRoutes(apiGroup fiber.Router, statisticsService *services.StatisticsService) {
 	statisticsHandler := handlers.NewStatisticsHandler(statisticsService)
-	statisticsGroup.Get("/", statisticsHandler.GetStatisticsHandler)
+	apiGroup.Get("/statistics", statisticsHandler.GetStatisticsHandler)
 
 }

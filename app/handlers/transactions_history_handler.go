@@ -19,10 +19,25 @@ func (h *TransactionsHistoryHandler) GetTransactionsHistory(c *fiber.Ctx) error 
 	startDateStr := c.Query("startDate")
 	endDateStr := c.Query("endDate")
 	transactionType := c.Query("transactionType")
+	page := c.QueryInt("page", 1)
+
+	var err error
+	if page < 1 {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+			"code":    "INVALID_PAGE",
+			"message": "Page must be a positive integer.",
+		})
+	}
+
+	pageSize := c.QueryInt("pageSize", 50)
+	if pageSize < 1 {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+			"code":    "INVALID_PAGE_SIZE",
+			"message": "Page size must be a positive integer.",
+		})
+	}
 
 	var startDate, endDate time.Time
-	var err error
-
 	if startDateStr != "" {
 		startDate, err = time.Parse(time.RFC3339, startDateStr)
 		if err != nil {
@@ -49,7 +64,7 @@ func (h *TransactionsHistoryHandler) GetTransactionsHistory(c *fiber.Ctx) error 
 		endDate = time.Now()
 	}
 
-	history, err := h.Service.GetTransactionsHistory(c.Context(), startDate, endDate, transactionType)
+	history, err := h.Service.GetTransactionsHistory(c.Context(), startDate, endDate, transactionType, page, pageSize)
 	if err != nil {
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
 			"code":    "TRANSACTION_HISTORY_ERROR",
@@ -58,6 +73,9 @@ func (h *TransactionsHistoryHandler) GetTransactionsHistory(c *fiber.Ctx) error 
 	}
 
 	return c.JSON(fiber.Map{
-		"data": history,
+		"total":    history.Total,
+		"page":     page,
+		"pageSize": pageSize,
+		"data":     history.Data,
 	})
 }

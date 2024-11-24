@@ -19,7 +19,12 @@ func NewTransactionsHistoryService(db *mongo.Database) *TransactionsHistoryServi
 	}
 }
 
-func (s *TransactionsHistoryService) GetTransactionsHistory(ctx context.Context, startDate, endDate time.Time, transactionType string) (models.TransactionsHistoryResponse, error) {
+func (s *TransactionsHistoryService) GetTransactionsHistory(
+	ctx context.Context,
+	startDate, endDate time.Time,
+	transactionType string,
+	page, pageSize int,
+) (models.TransactionsHistoryResponse, error) {
 	filter := bson.M{
 		"created_at": bson.M{
 			"$gte": startDate,
@@ -41,6 +46,12 @@ func (s *TransactionsHistoryService) GetTransactionsHistory(ctx context.Context,
 	if transactionType != "" {
 		pipeline = append(pipeline, bson.D{{"$match", bson.M{"type_info.name": transactionType}}})
 	}
+
+	offset := (page - 1) * pageSize
+	pipeline = append(pipeline,
+		bson.D{{"$skip", offset}},
+		bson.D{{"$limit", pageSize}},
+	)
 
 	pipeline = append(pipeline, bson.D{{"$project", bson.M{
 		"transaction_code":    1,

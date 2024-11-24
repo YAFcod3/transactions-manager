@@ -15,18 +15,18 @@ cd transactions-manager
 ```
 
 ### **Configurar Variables de Entorno**
-```env
-PORT=
+```bash
+PORT=     # puerto para el servidor
 URL_API_EXTERNAL_GET_RATE=https://concurso.dofleini.com/exchange-rate/api/
 SUPPORTED_CURRENCIES=USD,EUR,GBP,JPY,CAD,AUD
 MONGO_USERNAME=
 MONGO_PASSWORD=
 MONGO_DB_NAME=
-MONGO_PORT_EXTERNAL=27017
-REDIS_PORT_EXTERNAL=6379
+MONGO_PORT_EXTERNAL=27017  # puede ser diferente
+REDIS_PORT_EXTERNAL=6379   # puede ser diferente
 REDIS_PASSWORD=
 APP_JWT_SECRET=
-ALLOW_ORIGINS=   (opcional)
+ALLOW_ORIGINS=    # (opcional)  por defecto permite todos los orígenes
 ```
 
 ### **Levantar la Aplicación**
@@ -61,7 +61,7 @@ docker-compose down  # down
 
 ```
 
-### Sin decide iniciar el servidor fuera del contenedor
+### Si decide iniciar el servidor fuera del contenedor
 
  - Instalar Go en su sistema (https://go.dev/doc/install) version 1.23 o superior.
  - Descargue dependencies con `go mod tidy` en la carpeta raíz del proyecto.
@@ -75,18 +75,21 @@ docker-compose down  # down
 
 ## **Descripción del Proyecto**
 
-Esta aplicación es una solución backend diseñada para gestionar transacciones financieras de manera eficiente y segura. Sus funcionalidades incluyen:
+Esta aplicación es una solución  diseñada para gestionar transacciones financieras de manera eficiente y segura. Sus funcionalidades incluyen:
 - Conversión de monedas con tasas de cambio actualizadas en tiempo real.
 - Generación de códigos únicos para cada transacción.
 - Gestión de tipos de transacciones
 - Estadísticas de transacciones.
+- Historial de transacciones.
+- Verificación de transacciones duplicadas en un lapso de tiempo de 20 segundos.
+- Actualización de tasas de cambio.
 
 ### **Endpoints**
 
 ##### **- `/exchange/api/conversion`**
 ##### **- `/exchange/api/currencies`**
 ##### **- `/exchange/api/settings/transactions-types`**
-##### **- `/exchange/api/statistics/`**
+##### **- `/exchange/api/statistics`**
 ##### **- `/exchange/api/transactions`**
 
 ---
@@ -145,11 +148,11 @@ Por otro lado, Fiber, es un framework  para Go que es extremadamente rápido y e
 
 
 ---
-## Explicaciones de algunos elementos clave
+# Explicaciones de algunos elementos clave
 
-### **Punto de Entrada Principal**
+## **Punto de Entrada Principal**
 
-El archivo `main.go` inicializa las dependencias de la aplicación, como MongoDB y Redis, configura el servidor con Fiber, y gestiona procesos clave como la generación de códigos únicos y la actualización automática de tasas de cambio.
+El archivo ``` main.go ``` inicializa las dependencias principales de la aplicación (como MongoDB y Redis), inicializa  servicios clave como la generación de códigos únicos y la actualización automática de tasas de cambio, y luego inicia el servidor configurado mediante Fiber, gestionando también su apagado controlado.
 
 
 ### **Configuración del Servidor**
@@ -189,33 +192,53 @@ El archivo `update_rate.go` en la carpeta `utils` implementa un proceso automati
 4. **Beneficios de la Implementación**:
     - Concurrencia: La actualización se ejecuta en paralelo, asegurando que no interfiera con otras operaciones del sistema.
     - Eficiencia: Al usar Redis y pipelines, el sistema minimiza la latencia y mejora el rendimiento.
-    - Sigue un enfoque adaptador para integrar el servicio externo con Redis, lo que facilita el mantenimiento y posibles cambios futuros.
+    - Sigue un enfoque adaptador.
 
 
-### **Generador de Códigos Únicos**
+## **Generador de Códigos**
 
 El archivo `generate_transaction_code.go` implementa un sistema para generar códigos únicos en el formato `TYYMMDDHH{00000000}`, donde:
 - `YYMMDDHH` representa la fecha y hora actual.
 - `{00000000}` es un contador incremental, reiniciado cada hora.
 
----
 
-### **Características Clave**
+#### **Características Clave**
 
 1. **Persistencia con Redis**:
    - El contador (`counter`) y la última hora procesada (`lastHour`) se almacenan en Redis para garantizar continuidad tras reinicios.
 
 2. **Concurrencia Segura**:
-   - Usa `sync.Mutex` para evitar **condiciones de carrera** al manejar el contador en entornos concurrentes.
+   - Se utiliza sync.Mutex y sus métodos Lock() y Unlock() para asegurarse de que el método GenerateCode sea seguro cuando se ejecuta en paralelo.Esto es importante porque, en un entorno donde varias tareas (goroutines) podrían ejecutar este método al mismo tiempo, se necesita evitar que interfieran entre sí al trabajar con datos compartidos. El mutex actúa como un "semáforo" que permite que solo una tarea acceda a la sección crítica del código a la vez.Esto evita que se generen códigos duplicados .
 
 3. **Reinicio por Hora**:
    - Al cambiar de hora, el contador se reinicia automáticamente. En el lapso d una hora si el contador supera su valor máximo, no se generará ningún código hasta al menos la siguiente hora.
 
 
-### **Ventajas**
-- **Fiabilidad**: Los datos en Redis garantizan la persistencia del estado.
-- **Seguridad Concurrente**: Evita conflictos usando un mutex.
+## **Verificación de Transacciones Duplicadas en un Lapso de Tiempo de 20 Segundos**
+ -  El middleware ``` VerifyTransactionDuplicated ``` se asegura de que un usuario no pueda enviar la misma transacción dentro de un intervalo de 20 segundos utilizando Redis como almacenamiento temporal.Cada transacción genera una clave única (uniqueKey) basada en los datos de la transacción (que se toman en cuenta para considerar la transacción como duplicada).Redis almacena esta clave única con un Tiempo de Vida (TTL) de 20 segundos.Esto bloquea intentos de repetir la misma transacción hasta que expire el TTL (20 segundos).
 
+## **Validación en la creación de Tipo de Transacción**
+  - En el servicio de tipos de transacciones, la función ``` CreateTransactionType ```  utiliza una combinación de MongoDB y colaciones para validar que el nombre del tipo de transacción no esté duplicado, asegurando que la comparación sea insensible a mayúsculas, minúsculas y acentos. La colación configura cómo se comparan y ordenan los datos en MongoDB. Locale: "es": Permite seguir las reglas de comparación del idioma español, lo que incluye considerar tildes como equivalentes ( ej, "a" =  "á"). Strength: 1 => Nivel 1: Insensible a tildes y mayúsculas/minúsculas. Esto significa que las comparaciones de datos en MongoDB se realizan de manera insensible a las tildes y mayúsculas/minúsculas.
+
+## **Historial de Transacciones**
+
+  -  Endpoint que permite obtener un historial de transacciones filtrado por fecha de creación y tipo de transacción, con soporte para paginación flexible, para facilitar las consultas ya que se pueden  manejar grandes cantidades de datos.
+
+#### Detalles del Endpoint
+- **Path:** `/exchange/api/transactions`
+- **Método:** `GET`
+
+#### Parámetros de Query (Opcionales)
+
+| Nombre            | Tipo     | Descripción                                                                         | Valor por Defecto      |
+| ----------------- | -------- | ----------------------------------------------------------------------------------- | ---------------------- |
+| `startDate`       | `string` | Fecha de inicio del filtro en formato **RFC3339**. Ejemplo: `2024-11-01T00:00:00Z`. | `2000-01-01T00:00:00Z` |
+| `endDate`         | `string` | Fecha de fin del filtro en formato **RFC3339**. Ejemplo: `2024-11-30T23:59:59Z`.    | Fecha y hora actuales  |
+| `transactionType` | `string` | Nombre del tipo de transacción a filtrar.                                           | Sin filtro             |
+| `page`            | `int`    | Número de la página solicitada. Debe ser un entero positivo.                        | `1`                    |
+| `pageSize`        | `int`    | Cantidad de transacciones por página. Debe ser un entero positivo.                  | `50`                   |
+
+---
 
 
 
