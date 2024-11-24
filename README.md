@@ -220,6 +220,26 @@ El archivo `generate_transaction_code.go` implementa un sistema para generar có
 ## **Validación en la creación de Tipo de Transacción**
   - En el servicio de tipos de transacciones, la función ``` CreateTransactionType ```  utiliza una combinación de MongoDB y colaciones para validar que el nombre del tipo de transacción no esté duplicado, asegurando que la comparación sea insensible a mayúsculas, minúsculas y acentos. La colación configura cómo se comparan y ordenan los datos en MongoDB. Locale: "es": Permite seguir las reglas de comparación del idioma español, lo que incluye considerar tildes como equivalentes ( ej, "a" =  "á"). Strength: 1 => Nivel 1: Insensible a tildes y mayúsculas/minúsculas. Esto significa que las comparaciones de datos en MongoDB se realizan de manera insensible a las tildes y mayúsculas/minúsculas.
 
+## **Historial de Transacciones**
+
+  -  Endpoint que permite obtener un historial de transacciones filtrado por fecha de creación y tipo de transacción, con soporte para paginación flexible, para facilitar las consultas ya que se pueden  manejar grandes cantidades de datos.
+
+#### Detalles del Endpoint
+- **Path:** `/exchange/api/transactions`
+- **Método:** `GET`
+
+#### Parámetros de Query (Opcionales)
+
+| Nombre            | Tipo     | Descripción                                                                         | Valor por Defecto      |
+| ----------------- | -------- | ----------------------------------------------------------------------------------- | ---------------------- |
+| `startDate`       | `string` | Fecha de inicio del filtro en formato **RFC3339**. Ejemplo: `2024-11-01T00:00:00Z`. | `2000-01-01T00:00:00Z` |
+| `endDate`         | `string` | Fecha de fin del filtro en formato **RFC3339**. Ejemplo: `2024-11-30T23:59:59Z`.    | Fecha y hora actuales  |
+| `transactionType` | `string` | Nombre del tipo de transacción a filtrar.                                           | Sin filtro             |
+| `page`            | `int`    | Número de la página solicitada. Debe ser un entero positivo.                        | `1`                    |
+| `pageSize`        | `int`    | Cantidad de transacciones por página. Debe ser un entero positivo.                  | `50`                   |
+
+---
+
 
 
 ## **`docker-compose.yml`**
