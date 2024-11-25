@@ -27,8 +27,12 @@ func StartExchangeRateUpdater(client *redis.Client, interval time.Duration) {
 	httpClient := &http.Client{
 		Timeout: 30 * time.Second,
 	}
-
-	var baseURL = os.Getenv("URL_API_EXTERNAL_GET_RATE")
+	baseCurrency := os.Getenv("BASE_CURRENCY")
+	if baseCurrency == "" {
+		log.Fatal("Base currency not set. Please set the BASE_CURRENCY environment variable.")
+		return
+	}
+	baseURL := os.Getenv("URL_API_EXTERNAL_GET_RATE")
 	if baseURL == "" {
 		log.Fatal("Base URL not set. Please set the URL_API_EXTERNAL_GET_RATE environment variable.")
 		return
@@ -42,7 +46,7 @@ func StartExchangeRateUpdater(client *redis.Client, interval time.Duration) {
 		}
 		u.Path = "/exchange-rate/api/latest"
 		query := u.Query()
-		query.Set("base", "USD")
+		query.Set("base", baseCurrency)
 		u.RawQuery = query.Encode()
 
 		resp, err := httpClient.Get(u.String())
@@ -74,8 +78,22 @@ func StartExchangeRateUpdater(client *redis.Client, interval time.Duration) {
 		key := "exchange_rates"
 		pipe := client.TxPipeline()
 
-		for currency, rate := range exchangeRate.Rates {
-			pipe.HSet(ctx, key, currency, rate)
+		for fromCurrency, fromRate := range exchangeRate.Rates {
+			if fromCurrency != baseCurrency {
+				baseKey := fmt.Sprintf("%s:%s", baseCurrency, fromCurrency)
+				pipe.Set(ctx, baseKey, fromRate, 65*time.Minute)
+
+				inverseBaseKey := fmt.Sprintf("%s:%s", fromCurrency, baseCurrency)
+				pipe.Set(ctx, inverseBaseKey, 1/fromRate, 65*time.Minute)
+			}
+
+			for toCurrency, toRate := range exchangeRate.Rates {
+				if fromCurrency != toCurrency {
+					relativeKey := fmt.Sprintf("%s:%s", fromCurrency, toCurrency)
+					relativeRate := toRate / fromRate
+					pipe.Set(ctx, relativeKey, relativeRate, 65*time.Minute)
+				}
+			}
 		}
 
 		pipe.HSet(ctx, key, "base", exchangeRate.Base)
@@ -89,7 +107,8 @@ func StartExchangeRateUpdater(client *redis.Client, interval time.Duration) {
 
 		fmt.Println("Exchange rates updated successfully!")
 	}
-	// first fetch exchange rates
+
+	// Fetch initial rates
 	fetchExchangeRates()
 
 	ticker := time.NewTicker(interval)
