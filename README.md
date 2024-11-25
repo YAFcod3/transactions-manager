@@ -18,6 +18,7 @@ cd transactions-manager
 ```bash
 PORT=     # puerto para el servidor
 URL_API_EXTERNAL_GET_RATE=https://concurso.dofleini.com/exchange-rate/api/
+BASE_CURRENCY=USD       # moneda base debe ser una d las soportadas
 SUPPORTED_CURRENCIES=USD,EUR,GBP,JPY,CAD,AUD
 MONGO_USERNAME=
 MONGO_PASSWORD=
@@ -166,11 +167,11 @@ El archivo `update_rate.go` en la carpeta `utils` implementa un proceso automati
 
 #### **Características Principales:**
 1. **Consulta Periódica**:
-   - Realiza solicitudes al endpoint externo definido en la variable de entorno `URL_API_EXTERNAL_GET_RATE`.
-   - Actualiza las tasas de cambio en Redis.
+   - Realiza solicitudes al endpoint externo definido en la variable de entorno `URL_API_EXTERNAL_GET_RATE`. Utiliza la moneda base definida en BASE_CURRENCY para obtener las tasas relativas frente a otras monedas.
+   - Actualiza automáticamente las tasas almacenadas en Redis cada intervalo de tiempo definido.
 
 2. **Almacenamiento en Redis**:
-   - Almacena las tasas de cambio, la moneda base  en un hash llamado exchange_rates.
+   - Las tasas entre las diferentes monedas soportadas se almacenan como pares clave-valor en Redis.Tendrán un tiempo de expiración de alrededor de 1 hora , aunque el servicio de actualización de tasas de cambio se ejecutará cada hora.
 
 3. **Ejecución Concurrente:**:
 

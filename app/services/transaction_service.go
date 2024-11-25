@@ -11,6 +11,7 @@ import (
 	"transactions-manager/app/utils"
 	"transactions-manager/app/utils/generate_transaction_code"
 
+	"github.com/go-redis/redis/v8"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 )
 
@@ -58,13 +59,9 @@ func (s *ConversionService) ProcessTransaction(req models.TransactionRequest, us
 		return nil, fmt.Errorf("INVALID_TRANSACTION_TYPE: The transaction type does not exist")
 	}
 
-	fromRate, err := utils.GetExchangeRate(req.FromCurrency)
+	relativeRate, err := s.getRelativeExchangeRate(req.FromCurrency, req.ToCurrency)
 	if err != nil {
-		return nil, fmt.Errorf("EXCHANGE_RATE_ERROR: 'fromCurrency' exchange rate not found")
-	}
-	toRate, err := utils.GetExchangeRate(req.ToCurrency)
-	if err != nil {
-		return nil, fmt.Errorf("EXCHANGE_RATE_ERROR: 'toCurrency' exchange rate not found")
+		return nil, err
 	}
 
 	transactionCode, err := s.CodeGen.GenerateCode()
@@ -72,7 +69,7 @@ func (s *ConversionService) ProcessTransaction(req models.TransactionRequest, us
 		return nil, fmt.Errorf("TRANSACTION_CODE_ERROR: Failed to generate transaction code")
 	}
 
-	convertedAmount := (req.Amount / fromRate) * toRate
+	convertedAmount := utils.RoundOperations(req.Amount * relativeRate)
 
 	mongoDBName := os.Getenv("MONGO_DB_NAME")
 	transactionsColl := database.MongoClient.Database(mongoDBName).Collection("transactions")
@@ -81,8 +78,8 @@ func (s *ConversionService) ProcessTransaction(req models.TransactionRequest, us
 		FromCurrency:      req.FromCurrency,
 		ToCurrency:        req.ToCurrency,
 		Amount:            req.Amount,
-		AmountConverted:   utils.RoundOperations(convertedAmount),
-		ExchangeRate:      utils.RoundOperations(toRate / fromRate),
+		AmountConverted:   convertedAmount,
+		ExchangeRate:      relativeRate,
 		TransactionTypeID: transactionTypeID,
 		CreatedAt:         time.Now(),
 		UserID:            userID,
@@ -99,8 +96,8 @@ func (s *ConversionService) ProcessTransaction(req models.TransactionRequest, us
 		"fromCurrency":    transaction.FromCurrency,
 		"toCurrency":      transaction.ToCurrency,
 		"amount":          transaction.Amount,
-		"amountConverted": utils.RoundOperations(transaction.AmountConverted),
-		"exchangeRate":    utils.RoundOperations(transaction.ExchangeRate),
+		"amountConverted": convertedAmount,
+		"exchangeRate":    transaction.ExchangeRate,
 		"transactionType": transactionTypeName,
 		"createdAt":       transaction.CreatedAt.Format(time.RFC3339),
 		"userId":          transaction.UserID,
@@ -114,4 +111,18 @@ func (s *ConversionService) isCurrencySupported(currency string) bool {
 		}
 	}
 	return false
+}
+
+func (s *ConversionService) getRelativeExchangeRate(fromCurrency, toCurrency string) (float64, error) {
+	ctx := context.Background()
+	key := fmt.Sprintf("%s:%s", fromCurrency, toCurrency)
+	relativeRate, err := database.RedisClient.Get(ctx, key).Float64()
+
+	if err == redis.Nil {
+		return 0, fmt.Errorf("EXCHANGE_RATE_ERROR: No  rate found for %s to %s", fromCurrency, toCurrency)
+	} else if err != nil {
+		return 0, fmt.Errorf("REDIS_ERROR: %v", err)
+	}
+
+	return relativeRate, nil
 }
