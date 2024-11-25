@@ -17,7 +17,7 @@ cd transactions-manager
 ### **Configurar Variables de Entorno**
 ```bash
 PORT=     # puerto para el servidor
-URL_API_EXTERNAL_GET_RATE=https://concurso.dofleini.com/exchange-rate/api/
+URL_API_EXTERNAL_GET_RATE=https://concurso.dofleini.com/
 BASE_CURRENCY=USD       # moneda base debe ser una d las soportadas
 SUPPORTED_CURRENCIES=USD,EUR,GBP,JPY,CAD,AUD
 MONGO_USERNAME=
